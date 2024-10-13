@@ -12,7 +12,6 @@ const addDoctor = async (req, res) => {
       name,
       email,
       password,
-      phone,
       address,
       speciality,
       degree,
@@ -21,7 +20,7 @@ const addDoctor = async (req, res) => {
       experience,
     } = req.body;
     const imageFile = req.file;
-
+    
     // checking for all data to add doctor
     if (
       !name ||
@@ -33,13 +32,21 @@ const addDoctor = async (req, res) => {
       !fees||
       !speciality||
       !address ||
-      !imageFile || 
-      !phone 
+      !imageFile
     ) {
       return res
         .status(400)
         .json({ sucess: false, message: "Please fill all the fields" });
-    }
+      }
+
+
+    // check duplicate email
+    const existDoctorEmail = await  doctorModel.findOne({ email });
+    if (existDoctorEmail) {
+      return res.status(400).json({ sucess: false, message: "Email already exist"
+        });
+      }
+
 
     // validate email format
     if (!validator.isEmail(email)) {
@@ -70,7 +77,6 @@ const addDoctor = async (req, res) => {
     });
     const imageUrl = imageUpload.secure_url;
     
-
     const doctorData = {
       name,
       email,
@@ -104,13 +110,13 @@ const adminLogin = async (req, res) => {
 
         if(email === process.env.ADMIN_EMAIL  && password === process.env.ADMIN_PASSWORD){
             const token = jwt.sign(email+password,process.env.JWT_SECRET)
-            res.status(200).json({sucess:true,message: "Admin logged in successfully" ,token:token})
+            res.status(200).json({success:true,message: "Admin logged in successfully" ,token:token})
         }else{
-            return res.status(401).json({ message: "Invalid email or password" });
+            res.status(401).json({ message: "Invalid email or password" });
         }
     }catch{
         console.log(error)
-        res.status(500).json({ message: "Failed to login" });
+        res.status(500).json({ message: error.message });
     }
 }
 
