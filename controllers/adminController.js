@@ -3,9 +3,9 @@ import bcrypt from "bcrypt";
 import { v2 as cloudinary } from "cloudinary";
 import doctorModel from "../models/doctorModel.js";
 import jwt from "jsonwebtoken"
+import appointmentModel from "../models/appointment.js";
 
 // API for adding doctor
-
 const addDoctor = async (req, res) => {
   try {
     const {
@@ -103,7 +103,6 @@ const addDoctor = async (req, res) => {
 };
 
 // API for admin login
-
 const adminLogin = async (req, res) => {
     try{
         const  { email, password } = req.body;
@@ -121,7 +120,6 @@ const adminLogin = async (req, res) => {
 }
 
 // API to get all doctor list
-
 const allDoctors = async(req,res)=>{
   try{
     const doctors = await doctorModel.find().select("-password");
@@ -132,4 +130,43 @@ const allDoctors = async(req,res)=>{
     }
 }
 
-export { addDoctor,adminLogin,allDoctors };
+
+// API to get all appointment list
+const appointmentsAdmin = async(req,res)=>{
+  try {
+    const appointments = await appointmentModel.find({})
+    res.status(200).json({success:true,message:"All appointments list",appointments})
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({message:error.message})
+  }
+}
+
+// API for appointment cancellation
+const appointmentCancel =  async(req,res)=>{
+  try{
+    const {appointmentId} = req.body;
+    const appointmentData = await appointmentModel.findById(appointmentId)
+    
+    
+    await appointmentModel.findByIdAndUpdate(appointmentId,{cancelled:true})
+    
+    // releasing doctor slot
+    const {docId,slotDate,slotTime} = appointmentData
+    const doctorData = await doctorModel.findById(docId)
+    let  slots_booked = doctorData.slots_booked
+    
+    slots_booked[slotDate] = slots_booked[slotDate].filter(e=>e!==slotTime)
+    await doctorModel.findByIdAndUpdate(docId,{slots_booked})
+
+    res.status(200).json({success:true,message:"Appointment Cancelled"})
+  }catch(error){
+    console.log(error)
+    res.status(500).json({success:false,message:error.message})
+  }
+  
+}
+
+
+export { addDoctor,adminLogin,allDoctors,appointmentsAdmin,appointmentCancel };
